@@ -1,0 +1,275 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+
+#define MAXSIZE 100
+#define ERROR 0
+#define OK 1
+
+struct booksInfo{
+	char name[20];
+	char edition[20];
+	char auth[20];
+	char press[20];
+	char ISBN[20];
+	char publishDate[20];
+};
+
+typedef struct booksInfo BOIN;
+typedef BOIN* List;
+typedef int Position;
+typedef int Status;
+
+List CreateList(List L);
+Position InitList(List L, FILE *fp);
+void SystemCommand(void);
+void SystemOperation(List L, Position P, FILE *fp);
+void Input(List L, FILE *fp);
+Position Add(List L, Position P);
+void Revise(List L, Position P);
+Status Del(List L, Position P);
+Position Find(List L);
+void printInfo(List L, Position P);
+
+main()
+{
+	List L;
+	Position P;
+	FILE *fp;
+	
+	if ((fp = fopen("storage file.txt", "r+")) == NULL) 
+		printf("FILE OPEN ERROR!\n");
+	L = CreateList(L);	
+	P = InitList(L, fp);
+	SystemCommand();
+	SystemOperation(L, P, fp);
+	fclose(fp);
+	return 0;
+}
+
+void SystemOperation(List L, Position P, FILE *fp)
+{
+	int tmp;
+	Status cur;
+	Status yue = 0; //check whether the user has input the information or not
+	char c;
+	
+	while ((c = getchar()) != 'g') {
+		switch (c) {
+		case 'a':		//input
+			yue = 1; //the user has input it 
+			Input(L, fp);
+			break;
+		case 'b':		//revise
+			Revise(L, P);
+			break;	
+		case 'c':		//add
+			P = Add(L, P);
+			break;
+		case 'd':		//delete
+			cur = Del(L, P);
+			if (!cur)
+				printf("DELETE PROCESS ERROR!\n");
+			else
+				P--;	
+			break;
+		case 'e':		//sum
+			if (P == 0)
+				printf("There is no books in the system.\n", P);
+			else
+				printf("There are %d books in the system.\n", P);	
+			break;	
+		case 'f':		//find
+			tmp = Find(L);
+			if (tmp < MAXSIZE)
+				printInfo(L, tmp);
+			else 
+				printf("BOOK NOT FOUND!\n");	
+			break;
+		default:
+			if (c != '\n')
+				printf("Wrong Command!\n");
+			break;				
+		}
+	}
+	if (!yue)
+		Input(L, fp); //if the user has never input any information, the system would automatically input.	
+}
+
+List CreateList(List L)
+{
+	L = (List)malloc(sizeof(BOIN) * MAXSIZE);
+	memset(L, 0, sizeof(L));
+	return L;
+}
+
+Position InitList(List L, FILE *fp)
+{
+	int c;
+	int i = 0;
+	
+	if ((c = fgetc(fp)) == EOF) //if the file is empty 
+		return 0;
+	rewind(fp);	
+	while (!feof(fp)) {
+		if (i >= MAXSIZE) {
+			printf("TOO MUCH FILE CONTENT!\n");
+			return i;
+		}
+		fscanf(fp, "%s", L[i].name);
+		fscanf(fp, "%s", L[i].edition);
+		fscanf(fp, "%s", L[i].auth);
+		fscanf(fp, "%s", L[i].press);
+		fscanf(fp, "%s", L[i].ISBN);
+		fscanf(fp, "%s", L[i].publishDate);
+		i++;
+	}
+	i--; //remove the influence of feof
+	return i;
+}
+
+void SystemCommand(void)
+{
+	printf("Command:\n");
+	printf("Press 'a' to input\n");
+	printf("Press 'b' to revise\n");
+	printf("Press 'c' to add\n");
+	printf("Press 'd' to delete\n");
+	printf("Press 'e' to sum\n");
+	printf("Press 'f' to find\n");
+	printf("Press 'g' to power off\n");
+}
+
+void Input(List L, FILE *fp)
+{
+	int i = 0;
+	
+	fp = fopen("storage file.txt", "w");
+	while (L[i].name[0] != '\0') {
+		fprintf(fp, "%s\n", L[i].name);
+		fprintf(fp, "%s\n", L[i].edition);
+		fprintf(fp, "%s\n", L[i].auth);
+		fprintf(fp, "%s\n", L[i].press);
+		fprintf(fp, "%s\n", L[i].ISBN);
+		fprintf(fp, "%s\n", L[i].publishDate);
+		i++;
+	}
+	printf("Input process finish!\n");
+}
+
+void Revise(List L, Position P)
+{
+	int i = 0;
+	char *j;
+	
+	printf("Please type in the order number of the book.\n");
+	scanf("%s", j);
+	i = atoi(j);
+	while (i <= 0) { //check out if the user type in digits
+		printf("WRONG NUMBER!\n");
+		scanf("%s", j);
+		i = atoi(j);
+	}
+	if (i < 1 || i > P) { //if the order number is impossible
+		printf("WRONG NUMBER!\n");
+		return;
+	}
+	i--;
+	printf("Please input the modified information as the order below.\n");
+	printf("(name, edition, author, press ,ISBN and publishDate)\n");
+	scanf("%s", L[i].name);
+	scanf("%s", L[i].edition);
+	scanf("%s", L[i].auth);
+	scanf("%s", L[i].press);
+	scanf("%s", L[i].ISBN);
+	scanf("%s", L[i].publishDate);
+	printf("Revise process finish!\n");
+}
+
+Position Add(List L, Position P)
+{
+	int i;
+	int num = 0;
+	char *j;
+	
+	printf("Please type in number of the books to add\n");
+	scanf("%s", j);
+	num = atoi(j);
+	while (num <= 0) { //check out if the user type in digits
+		printf("WRONG NUMBER!\n");
+		scanf("%s", j);
+		num = atoi(j);
+	}
+	if (num + P > MAXSIZE) { // if the whole needed space is larger than the size of the list
+		printf("LIST OUT OF SPACE!\n");
+		return P;
+	}
+	printf("Please type in the information as the order below:\n");
+	printf("(name, edition, author, press ,ISBN and publishDate)\n");
+	for (i = 0; i < num; i++) {
+		scanf("%s", L[P + i].name);
+		scanf("%s", L[P + i].edition);
+		scanf("%s", L[P + i].auth);
+		scanf("%s", L[P + i].press);
+		scanf("%s", L[P + i].ISBN);
+		scanf("%s", L[P + i].publishDate);
+		if (num > 1)
+			printf("Finish!\n"); //avoid repetition
+	}
+	printf("Add process finish!\n");	
+	return P + num;
+}
+
+Status Del(List L, Position P)
+{
+	int i = 0;
+	int j;
+	char *k;
+	
+	if (P <= 0) {		//if the list is empty
+		printf("There is nothing in the list!\n");
+		return ERROR;
+	}
+	printf("Please type in the order number of the book to delete\n");
+	scanf("%s", k);
+	i = atoi(k);
+	while (i <= 0) { //check out if the user type in digits
+		printf("WRONG NUMBER!\n");
+		scanf("%s", k);
+		i = atoi(k);
+	}
+	if (i < 1 || i > P) { //if the order number is impossible
+		printf("WRONG NUMBER!\n");
+		return ERROR;
+	}
+	i--;
+	for (j = i; j < P - 1; j++)
+		L[j] = L[j + 1];
+	memset(&L[P - 1], 0, sizeof(BOIN));	//make the final one of the list empty
+	printf("Delete process finish!\n");	
+	return OK;	
+}
+
+Position Find(List L)
+{
+	int i = 0;
+	char *s;
+	
+	printf("Please input the ISBN code!\n");
+	scanf("%s", s);
+	while (i < MAXSIZE && strcmp(L[i].ISBN, s) != 0)
+		i++;
+	return i;	
+}
+
+void printInfo(List L, Position P)
+{
+	printf("Here is the information of the book\n");
+	printf("The order number of the book is %d\n", P);
+	printf("Name:%s\n", L[P].name);
+	printf("Edition:%s\n", L[P].edition);
+	printf("Author:%s\n", L[P].auth);
+	printf("Press:%s\n", L[P].press);
+	printf("ISBN:%s\n", L[P].ISBN);
+	printf("PublishDate:%s\n", L[P].publishDate);
+}
